@@ -125,7 +125,7 @@ body{
 .card-wrap{
   --w:180px;--h:320px;--ps:12px;--ca:70px;
   position:relative;display:grid;
-  transform-style:preserve-3d;will-change:transform;
+  transform-style:preserve-3d;
   animation:float 3s ease infinite;grid-template-rows:auto 1fr auto;gap:0.8rem;
   grid-template-areas:"hdr" "bdy" "ftr";
   width:var(--w);height:var(--h);padding:var(--ps) 0;
@@ -550,7 +550,9 @@ function dots(s){
 
 // ====== Spin animation ======
 function spin(listEl, items, onDone){
-  var H = 52; var N = items.length;
+  var row = listEl.querySelector('.slot-row');
+  var H = row ? row.offsetHeight : 52;
+  var N = items.length;
   if (N === 0) { onDone(-1); return; }
   var COPIES = 7, total = N * COPIES;
   var start = N + Math.floor(Math.random() * N);
@@ -811,20 +813,23 @@ function openPreview(index){
   E.previewCard.innerHTML = h;
   E.previewOv.classList.add('on');
 
-  // Attach parallax to preview card
+    // Attach parallax to preview card
   var card = E.previewCard.querySelector('.card-wrap');
   if (card) {
-    card.style.animationPlayState = 'paused';
+    card.style.animation = 'none';
     function ptilt(cx, cy){
       var rect = card.getBoundingClientRect();
       var x = (cx - rect.left) / rect.width - 0.5;
       var y = (cy - rect.top) / rect.height - 0.5;
+      card.style.willChange = 'transform';
       card.style.transition = 'none';
       card.style.transform = 'perspective(800px) rotateY(' + (x * 18) + 'deg) rotateX(' + (-y * 14) + 'deg)';
     }
     function preset(){
       card.style.transition = 'transform 0.3s ease-out';
       card.style.transform = '';
+      card.style.willChange = 'auto';
+      card.style.animation = 'float 3s ease infinite';
     }
     card.addEventListener('mousemove', function(e){ ptilt(e.clientX, e.clientY); });
     card.addEventListener('mouseleave', preset);
@@ -889,30 +894,34 @@ function attachParallax(){
   card.classList.remove('pop');
   card.style.animation = 'none';
   card.offsetHeight;
-  card.style.animation = '';
+  card.style.animation = 'float 3s ease infinite';
+
+  var floatAnim = card.style.animation;
 
   function tilt(cx, cy){
     var rect = card.getBoundingClientRect();
     var x = (cx - rect.left) / rect.width - 0.5;
     var y = (cy - rect.top) / rect.height - 0.5;
+    card.style.willChange = 'transform';
     card.style.transition = 'none';
     card.style.transform = 'perspective(800px) rotateY(' + (x * 18) + 'deg) rotateX(' + (-y * 14) + 'deg)';
   }
   function reset(){
     card.style.transition = 'transform 0.3s ease-out';
     card.style.transform = '';
-    card.style.animationPlayState = 'running';
+    card.style.willChange = 'auto';
+    card.style.animation = floatAnim;
   }
 
-  // Mouse (desktop)
-  card.addEventListener('mouseenter', function(){ card.style.animationPlayState = 'paused'; });
+  card.addEventListener('mouseenter', function(){
+    card.style.animation = 'none';
+  });
   card.addEventListener('mousemove', function(e){ tilt(e.clientX, e.clientY); });
   card.addEventListener('mouseleave', reset);
 
-  // Touch drag (mobile)
   card.addEventListener('touchstart', function(e){
     e.preventDefault();
-    card.style.animationPlayState = 'paused';
+    card.style.animation = 'none';
     var t = e.touches[0];
     tilt(t.clientX, t.clientY);
   }, {passive: false});
@@ -924,6 +933,7 @@ function attachParallax(){
   card.addEventListener('touchend', reset);
   card.addEventListener('touchcancel', reset);
 }
+
 
 
 
