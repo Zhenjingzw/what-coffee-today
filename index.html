@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What's Drink</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f9f8f6;--surface:#fff;--text:#1a1a1a;--text2:#8c8c8c;
+  --border:#e8e4de;--accent:#c4976a;--accent-h:#b08050;
+  --radius:10px;--font-body:"Noto Sans JP","Inter",system-ui,-apple-system,sans-serif;--font-head:"Noto Serif JP",serif;
+}
+body{
+  font-family:var(--font-body);background:#ede6d8;color:var(--text);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:32px 20px;-webkit-font-smoothing:antialiased;
+}
+.app{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center;gap:24px;position:relative;z-index:1;}
+
+.title{font-size:1.5rem;font-weight:500;font-family:var(--font-head);letter-spacing:0.06em;text-align:center;color:var(--text);}
+
+.lang-toggle{
+  font-size:0.7rem;color:var(--text2);cursor:pointer;border:1px solid var(--border);
+  border-radius:999px;padding:3px 12px;background:var(--surface);transition:all 0.2s;
+  letter-spacing:0.06em;
+}
+.lang-toggle:hover{border-color:var(--accent);color:var(--accent);}
+
+.steps{display:flex;gap:6px;align-items:center;}
+.steps span{width:7px;height:7px;border-radius:50%;background:var(--border);transition:all 0.3s;}
+.steps span.on{background:var(--accent);width:22px;border-radius:999px;}
+.steps span.done{background:var(--accent);}
+
+.slot-area{width:100%;display:flex;flex-direction:column;gap:18px;}
+.slot-group{width:100%;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.slot-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.2em;color:var(--text2);}
+.slot-frame{
+  width:100%;max-width:300px;height:52px;
+  border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);
+  overflow:hidden;position:relative;
+  box-shadow:0 1px 2px rgba(0,0,0,0.03);
+}
+.slot-list{}
+.slot-row{
+  height:52px;display:flex;align-items:center;justify-content:center;
+  font-size:1.05rem;color:var(--text);padding:0 20px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.slot-marker{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:2;
+  width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;
+}
+.slot-marker.left{left:8px;border-right:7px solid var(--accent);}
+.slot-marker.right{right:8px;border-left:7px solid var(--accent);}
+.slot-result{font-size:1.2rem;font-weight:500;color:var(--accent);text-align:center;padding:2px 0;}
+
+.btn{
+  padding:10px 36px;border-radius:999px;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);font-size:0.88rem;cursor:pointer;
+  transition:all 0.2s;font-family:var(--font-body);letter-spacing:0.02em;
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);
+}
+.btn:hover{border-color:var(--accent);color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.btn.pri{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn.pri:hover{background:var(--accent-h);color:#fff;}
+.btn.sm{padding:6px 14px;font-size:0.75rem;}
+.btn:disabled{opacity:0.35;cursor:not-allowed;}
+.btn.save-btn{background:#8db580;color:#fff;border-color:#8db580;}
+.btn.save-btn:hover{background:#7aa370;}
+.btn.discard-btn{border-color:#d44;color:#d44;}
+.btn.discard-btn:hover{background:#fff5f5;}
+
+.bottom{display:flex;gap:10px;align-items:center;}
+.icon-btn{
+  width:38px;height:38px;border-radius:50%;border:1px solid var(--border);
+  background:var(--surface);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.2s;font-size:1rem;color:var(--text2);
+  box-shadow:0 1px 2px rgba(0,0,0,0.03);outline:none;-webkit-appearance:none;
+}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.2);display:flex;
+  align-items:center;justify-content:center;z-index:100;
+  opacity:0;pointer-events:none;transition:opacity 0.25s;backdrop-filter:blur(3px);
+}
+.overlay.on{opacity:1;pointer-events:auto;}
+.modal{
+  background:var(--surface);border-radius:14px;padding:24px 20px;
+  width:90%;max-width:440px;max-height:80vh;overflow-y:auto;
+  box-shadow:0 8px 40px rgba(0,0,0,0.1);display:flex;flex-direction:column;gap:16px;
+}
+.modal h3{font-size:1.05rem;font-weight:500;font-family:var(--font-head);text-align:center;letter-spacing:0.06em;}
+.modal h4{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text2);margin-bottom:4px;}
+
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.tag{
+  display:inline-flex;align-items:center;gap:5px;padding:3px 10px;
+  border-radius:999px;border:1px solid var(--border);font-size:0.75rem;font-family:var(--font-body);background:var(--bg);
+}
+.tag button{border:none;background:none;cursor:pointer;color:var(--text2);padding:0;line-height:1;font-size:0.9rem;}
+.tag button:hover{color:#d44;}
+
+.shop-section{
+  border:1px solid var(--border);border-radius:var(--radius);padding:12px;background:var(--bg);
+}
+.shop-section h5{font-size:0.82rem;font-weight:500;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;}
+.shop-section h5 .del-shop{
+  font-size:0.7rem;color:var(--text2);cursor:pointer;border:none;background:none;
+  padding:2px 8px;border-radius:999px;border:1px solid var(--border);
+}
+.shop-section h5 .del-shop:hover{color:#d44;border-color:#d44;}
+
+.add-row{display:flex;gap:6px;}
+.add-row input{
+  flex:1;padding:7px 12px;border-radius:999px;border:1px solid var(--border);
+  font-size:0.8rem;font-family:var(--font-body);outline:none;background:var(--surface);
+}
+.add-row input:focus{border-color:var(--accent);}
+.act-row{display:flex;gap:8px;justify-content:center;margin-top:6px;flex-wrap:wrap;}
+
+/* Card */
+.card-area{width:100%;display:flex;justify-content:center;align-items:center;perspective:800px;}
+.card-wrap{
+  --w:180px;--h:320px;--ps:12px;--ca:70px;
+  position:relative;display:grid;
+  transform-style:preserve-3d;will-change:transform;
+  animation:float 3s ease infinite;grid-template-rows:auto 1fr auto;gap:0.8rem;
+  grid-template-areas:"hdr" "bdy" "ftr";
+  width:var(--w);height:var(--h);padding:var(--ps) 0;
+  font-family:"Inter",sans-serif;font-size:1rem;user-select:none;overflow:hidden;
+  filter:drop-shadow(0 2px 1px #0002)drop-shadow(0 4px 3px #0002)drop-shadow(0 10px 9px #0002);
+  }
+
+@keyframes float{
+  50%{filter:drop-shadow(0 4px 3px #0001)drop-shadow(0 6px 6px #0001)drop-shadow(0 16px 14px #0001);transform:translateY(-7px)scale(1.02);}
+}
+.card-wrap.sml{
+  --w:120px;--h:213px;--ps:8px;--ca:47px;font-size:0.65rem;gap:0.4rem;animation:none;
+}
+.card-bg{
+  position:absolute;inset:0;border-radius:inherit;background-color:#fff;filter:url(#bump);
+  mask:radial-gradient(circle at 50% 0,#fff0 calc(var(--ps) - 5px),#000 calc(var(--ps) - 4px)),radial-gradient(circle at 50% 100%,#fff0 calc(var(--ps) - 5px),#000 calc(var(--ps) - 4px)),radial-gradient(circle 8px at left center,#000 98%,#0000 100%),radial-gradient(circle 8px at right center,#000 98%,#0000 100%),repeating-linear-gradient(90deg,#000 10px,#000 15px,#0000 16px,#0000 24px);
+  mask-repeat:repeat-x,repeat-x,no-repeat,no-repeat,repeat-x;
+  mask-size:calc(var(--ps)*2)100%,calc(var(--ps)*2)100%,16px 16px,16px 16px,10px 2px;
+  mask-position:calc(0.5*var(--ps))top,calc(0.5*var(--ps))bottom,left var(--ca),right var(--ca),0 calc(var(--ca) + 7px);
+  mask-composite:intersect,exclude,add,add;
+}
+.card-holo{
+  background-image:linear-gradient(to bottom,#fe58,90%,#0002),conic-gradient(at 60% 50%,#ccc,#ff6bfe,#00f9f8,#ddd,#0081fd,#eef0bc,#0081fd,#ff6bfe,#0002,#0081fd,#ddd,#01fefb,#ccc);
+}
+.card-holo::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  background:radial-gradient(circle at 70% 20%,#f0f,#0000),repeating-radial-gradient(circle at 30% 80%,#fff,#f4a 48px,#eee 150px);
+  mix-blend-mode:color-burn;
+}
+.card-holo::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(to bottom,#f205,#f00,#0f0,#f205);
+  mix-blend-mode:difference;animation:holo 3s ease-in-out infinite alternate;
+  background-position:0 0;background-size:100% 300%;background-repeat:repeat;
+}
+@keyframes holo{to{background-position:0 500px;}}
+.card-hdr{
+  position:relative;grid-area:hdr;margin:0 8px;text-align:center;z-index:1;
+  font-family:"Impact",sans-serif;font-size:1.5rem;letter-spacing:1px;
+  color:#ffffff9f;text-shadow:0 0 0 #000;-webkit-text-stroke:#fff 0.5px;
+  mix-blend-mode:difference;line-height:1.1;
+}
+.card-wrap.sml .card-hdr{font-size:1rem;}
+.card-bdy{grid-area:bdy;margin:0 1em;padding:0.5em;font-weight:300;font-family:var(--font-head);z-index:1;}
+.card-bdy .spacer{display:block;height:0.8em;}
+.card-ftr{grid-area:ftr;z-index:1;margin:0 1em 1em 1em;}
+.card-no{margin-bottom:0.75rem;text-align:center;border-radius:999px 0;color:#000;font-weight:300;font-family:var(--font-head);}
+.card-no b{font-weight:600;}
+.card-bar{
+  justify-self:center;width:0;height:32px;
+  box-shadow:0 0 0 1px #000,5px 0 0 1px #000,7px 0 0 1px #000,11px 0 0 1px #000,15px 0 0 1px #000,16px 0 0 1px #000,22px 0 0 1px #000,27px 0 0 1px #000,30px 0 0 1px #000,35px 0 0 1px #000,36px 0 0 1px #000,39px 0 0 1px #000,43px 0 0 1px #000,47px 0 0 1px #000,50px 0 0 1px #000,55px 0 0 1px #000,59px 0 0 1px #000,60px 0 0 1px #000,64px 0 0 1px #000,69px 0 0 1px #000,70px 0 0 1px #000,74px 0 0 1px #000;
+  transform:translateX(37px);
+}
+.card-wrap.sml .card-bar{height:22px;transform:translateX(25px);}
+.card-cut{position:absolute;top:1.1em;right:0;rotate:185deg;font-size:1.1em;color:#fff;line-height:0.5;opacity:0.2;}
+.card-watermark{
+  position:absolute;inset:0;overflow:hidden;font-size:3.4rem;color:#e7e7e7;
+  mix-blend-mode:color-burn;z-index:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;padding-top:28px;
+  line-height:0.85;text-align:center;
+}
+.card-wrap.sml .card-watermark{font-size:2.2rem;padding-top:18px;}
+
+.hist-card-wrap{position:relative;}
+.hist-del{
+  position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:0.7rem;
+  color:var(--text2);z-index:5;transition:all 0.15s;padding:0;
+}
+.hist-del:hover{color:#d44;border-color:#d44;background:#fff5f5;}
+
+@keyframes pop{0%{transform:scale(0.3)rotate(-5deg);opacity:0}100%{transform:scale(1)rotate(0deg);opacity:1}}
+.pop{animation:pop 0.6s cubic-bezier(0.175,0.885,0.32,1.275)both;}
+.hide{display:none!important;}
+.in{animation:in 0.4s ease both;}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+.hist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:16px;padding:6px 2px;}
+.hist-card{cursor:pointer;transition:transform 0.2s;}
+.hist-card:hover{transform:scale(1.05);}
+
+#previewCard{perspective:800px;display:flex;justify-content:center;align-items:center;}
+#previewCard .card-wrap{animation:none;}
+@media(max-width:480px){
+  body{padding:24px 16px;}
+  .app{gap:20px;}
+  .title{font-size:1.3rem;}
+  .slot-frame{max-width:260px;height:48px;}
+  .slot-row{height:48px;font-size:0.95rem;}
+  .slot-label{font-size:0.6rem;}
+  .card-wrap{--w:150px;--h:266px;--ps:10px;--ca:58px;font-size:0.85rem;gap:0.6rem;}
+  .card-wrap .card-hdr{font-size:1.2rem;}
+  .card-wrap .card-watermark{font-size:2.4rem;padding-top:22px;}
+  .card-wrap.sml{--w:100px;--h:178px;--ps:6px;--ca:39px;font-size:0.55rem;gap:0.3rem;}
+  .card-wrap.sml .card-hdr{font-size:0.85rem;}
+  .card-wrap.sml .card-watermark{font-size:1.8rem;padding-top:14px;}
+  .card-wrap.sml .card-bar{height:18px;transform:translateX(20px);}
+  .btn{padding:8px 28px;font-size:0.8rem;}
+  .btn.sm{padding:5px 12px;font-size:0.7rem;}
+  .modal{width:95%;padding:18px 14px;gap:12px;}
+  .modal h3{font-size:0.95rem;}
+  .hist-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:12px;}
+  .bottom{gap:8px;}
+  .icon-btn{width:34px;height:34px;font-size:0.9rem;}
+  .tag{font-size:0.7rem;padding:2px 8px;}
+  .add-row input{font-size:0.72rem;padding:6px 10px;}
+  .shop-section h5{font-size:0.75rem;}
+  .lang-toggle{font-size:0.65rem;padding:2px 10px;}
+}
+
+@media(max-width:360px){
+  body{padding:16px 10px;}
+  .app{gap:14px;}
+  .title{font-size:1.15rem;}
+  .slot-frame{max-width:220px;height:44px;}
+  .slot-row{height:44px;font-size:0.85rem;}
+  .card-wrap{--w:130px;--h:230px;--ps:8px;--ca:50px;font-size:0.75rem;gap:0.4rem;}
+  .card-wrap .card-hdr{font-size:1rem;}
+  .card-wrap .card-watermark{font-size:2rem;padding-top:18px;}
+  .card-wrap.sml{--w:85px;--h:151px;--ps:5px;--ca:33px;font-size:0.5rem;gap:0.2rem;}
+  .card-wrap.sml .card-hdr{font-size:0.7rem;}
+  .card-wrap.sml .card-watermark{font-size:1.5rem;padding-top:10px;}
+  .card-wrap.sml .card-bar{height:14px;transform:translateX(16px);}
+  .btn{padding:7px 22px;font-size:0.75rem;}
+  .hist-grid{grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:10px;}
+  .modal{width:98%;padding:14px 10px;}
+}
+</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600&family=Noto+Sans+JP:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body>
+<div style="position:fixed;inset:0;z-index:0;pointer-events:none;filter:url(#washi);background:transparent;" aria-hidden="true"></div>
+
+<svg style="position:absolute;width:0;height:0" aria-hidden="true"><filter id="washi"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0.92  0 0 0 0 0.90  0 0 0 0 0.88  0 0 0 0.07 0" in="noise" result="colored"></feColorMatrix><feComposite operator="in" in="colored" in2="SourceGraphic"></feComposite></filter><filter id="bump"><feTurbulence result="noise" numOctaves="3" baseFrequency="0.7" type="fractalNoise"></feTurbulence><feSpecularLighting in="noise" result="specular" lighting-color="#fffffc" specularExponent="25" specularConstant="0.8" surfaceScale="0.15"><fePointLight z="210" y="100" x="100"></fePointLight></feSpecularLighting><feComposite result="noise2" operator="in" in="specular" in2="SourceGraphic"></feComposite><feBlend mode="screen" in2="noise2" in="SourceGraphic"></feBlend></filter></svg>
+
+<div class="app" id="app">
+  <div class="title">
+    <span id="titleMain">What's Drink</span>
+  </div>
+
+  <button class="lang-toggle" id="langToggle" title="Switch language">EN / 中</button>
+
+  <div class="steps" id="stepDots"><span id="d1"></span><span id="d2"></span></div>
+
+  <div class="slot-area" id="slotArea">
+    <div class="slot-group hide" id="shopGroup">
+      <div class="slot-label" id="shopLabel">Shop</div>
+      <div class="slot-frame" id="shopFrame"><div class="slot-list" id="shopList"></div><div class="slot-marker left"></div><div class="slot-marker right"></div></div>
+      <div class="slot-result hide" id="shopRes"></div>
+    </div>
+    <div class="slot-group hide" id="drinkGroup">
+      <div class="slot-label" id="drinkLabel">Drink</div>
+      <div class="slot-frame" id="drinkFrame"><div class="slot-list" id="drinkList"></div><div class="slot-marker left"></div><div class="slot-marker right"></div></div>
+      <div class="slot-result hide" id="drinkRes"></div>
+    </div>
+  </div>
+
+  <div class="card-area hide" id="cardArea"></div>
+
+  <div id="btnWrap"><button class="btn pri" id="btnRoll">Roll</button></div>
+
+  <div class="bottom">
+    <button class="icon-btn" id="btnSet" title="Settings">&#9881;</button>
+    <button class="icon-btn" id="btnHist" title="History">&#9776;</button>
+    <button class="btn sm hide" id="btnAgain">Again</button>
+    <button class="btn sm save-btn hide" id="btnSave" class="save-btn">Save</button>
+    <button class="btn sm discard-btn hide" id="btnDiscard">Discard</button>
+  </div>
+</div>
+
+<!-- Settings Overlay -->
+<div class="overlay" id="setOv">
+  <div class="modal" id="setModal">
+    <h3 id="setTitle">Settings</h3>
+    <div id="setContent"></div>
+    <div class="act-row">
+      <button class="btn sm" id="btnAddShop2">+ Add Shop</button>
+      <button class="btn sm" id="btnReset">Reset Defaults</button>
+      <button class="btn sm" id="btnResetCount">Reset Counter</button>
+      <button class="btn sm" id="btnClearHist">Clear History</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Overlay -->
+<div class="overlay" id="histOv">
+  <div class="modal">
+    <h3 id="histTitle">History</h3>
+    <div class="hist-grid" id="histGrid"></div>
+    <p style="text-align:center;color:var(--text2);font-size:0.8rem;margin-top:10px;" id="histEmpty">No records yet</p>
+  </div>
+</div>
+
+<!-- Card Preview Overlay -->
+<div class="overlay" id="previewOv">
+  <div class="modal" style="background:transparent;box-shadow:none;display:flex;align-items:center;justify-content:center;">
+    <div id="previewCard"></div>
+  </div>
+</div>
+
+<script>
+// ====== i18n ======
+var LANG = (function(){
+  try { return localStorage.wd_lang || 'en'; } catch(e) { return 'en'; }
+})();
+
+var T = {
+  en: {
+    title: "What's Drink", sub: "Today's Picks", shopLabel: "Shop", drinkLabel: "Drink",
+    btnRoll: "Roll", btnAgain: "Again", setTitle: "Settings", histTitle: "History",
+    reset: "Reset Defaults", clearHist: "Clear History", resetCount: "Reset Counter", addShop: "+ Add Shop",
+    delShop: "Remove Shop", drinkPlaceholder: "Add drink...",
+    histEmpty: "No records yet", cardHeader: "DRINK",
+    surprise: "Surprise Me",
+    saveCard: "Save", discardCard: "Discard"
+  },
+  zh: {
+    title: "今天喝什么", sub: "今日之选",
+    shopLabel: "店铺", drinkLabel: "饮品",
+    btnRoll: "开始摇", btnAgain: "再抽一次",
+    setTitle: "设置", histTitle: "历史记录",
+    reset: "恢复默认", clearHist: "清空历史", resetCount: "重置计数器",
+    addShop: "+ 添加店铺", delShop: "删除店铺",
+    drinkPlaceholder: "添加饮品...",
+    histEmpty: "还没有抽签记录",
+    cardHeader: "DRINK",
+    surprise: "随心",
+    saveCard: "收藏", discardCard: "丢弃"
+  }
+};
+
+function t(key){ return (T[LANG] && T[LANG][key]) || (T['en'][key] || key); }
+
+function applyLang(){
+  document.title = t('title');
+  document.getElementById('titleMain').textContent = t('title');
+  document.getElementById('shopLabel').textContent = t('shopLabel');
+  document.getElementById('drinkLabel').textContent = t('drinkLabel');
+  document.getElementById('btnRoll').textContent = t('btnRoll');
+  document.getElementById('btnAgain').textContent = t('btnAgain');
+  document.getElementById('setTitle').textContent = t('setTitle');
+  document.getElementById('histTitle').textContent = t('histTitle');
+  document.getElementById('btnReset').textContent = t('reset');
+  document.getElementById('btnClearHist').textContent = t('clearHist');
+  document.getElementById('btnResetCount').textContent = t('resetCount');
+  document.getElementById('btnSave').textContent = t('saveCard');
+  document.getElementById('btnDiscard').textContent = t('discardCard');
+  document.getElementById('btnAddShop2').textContent = t('addShop');
+  document.getElementById('histEmpty').textContent = t('histEmpty');
+  document.getElementById('langToggle').textContent = LANG === 'zh' ? 'EN / 中' : 'EN / 中';
+  if (document.getElementById('setOv').classList.contains('on')) renderSettings();
+  buildShopList();
+  if (shopPick && drinkPick && !E.cardArea.classList.contains('hide')) {
+    renderCard();
+  }
+}
+
+// ====== MENU: per-shop drink lists ======
+var MENU = {
+  'Ruixing Coffee':   [{en:'Coconut Latte',zh:'生椰拿铁'},{en:'Thick Milk Latte',zh:'厚乳拿铁'},{en:'Americano',zh:'美式'},{en:'Flat White',zh:'澳瑞白'},{en:'Velvet Latte',zh:'丝绒拿铁'},{en:'Orange C Americano',zh:'橙C美式'},{en:'Jasmine Latte',zh:'茉莉花香拿铁'},{en:'Coconut Cloud Latte',zh:'椰云拿铁'},{en:'Cheese Latte',zh:'芝士拿铁'},{en:'Cappuccino',zh:'卡布奇诺'}],
+  'Starbucks':        [{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Caramel Macchiato',zh:'焦糖玛奇朵'},{en:'Frappuccino',zh:'星冰乐'},{en:'Cold Brew',zh:'冷萃'},{en:'Flat White',zh:'馥芮白'},{en:'Mocha',zh:'摩卡'},{en:'Matcha Latte',zh:'抹茶拿铁'},{en:'Iced Shaken Lemon Tea',zh:'冰摇柠檬茶'},{en:'Peach Oolong',zh:'桃桃乌龙'}],
+  'Manner Coffee':    [{en:'Latte',zh:'拿铁'},{en:'Flat White',zh:'澳白'},{en:'Americano',zh:'美式'},{en:'Dirty',zh:'Dirty'},{en:'Pour Over',zh:'手冲'},{en:'Cold Brew',zh:'冷萃'},{en:'Oat Milk Latte',zh:'燕麦拿铁'},{en:'Osmanthus Latte',zh:'桂花拿铁'},{en:'Orange Peel Latte',zh:'橘皮拿铁'},{en:'Iced Latte',zh:'冰拿铁'}],
+  'M Stand':          [{en:'Crispy Choc Latte',zh:'脆巧拿铁'},{en:'Cheese Latte',zh:'芝士拿铁'},{en:'Coconut Dirty',zh:'生椰Dirty'},{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Flat White',zh:'澳白'},{en:'Cement Cheesecake Latte',zh:'水泥芝士蛋糕拿铁'},{en:'Cold Brew',zh:'冷萃'},{en:'Iced Blog Latte',zh:'冰博客拿铁'}],
+  'Kudi Coffee':      [{en:'Coconut Latte',zh:'生椰拿铁'},{en:'Americano',zh:'美式'},{en:'Cheese Latte',zh:'芝士拿铁'},{en:'Latte',zh:'拿铁'},{en:'Coconut Dirty',zh:'生椰Dirty'},{en:'Pampas Blue Jasmine Latte',zh:'潘帕斯蓝茉莉拿铁'},{en:'Flat White',zh:'澳白'}],
+  'Tims':             [{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Double Double',zh:'Double Double'},{en:'Cold Brew',zh:'冷萃'},{en:'Cappuccino',zh:'卡布奇诺'},{en:'Matcha Latte',zh:'抹茶拿铁'},{en:'Flat White',zh:'澳白'}],
+  'Peets Coffee':     [{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Flat White',zh:'澳白'},{en:'Cold Brew',zh:'冷萃'},{en:'Matcha Latte',zh:'抹茶拿铁'},{en:'Cappuccino',zh:'卡布奇诺'},{en:'Pour Over',zh:'手冲'},{en:'Iced Americano',zh:'冰美式'}],
+  'Bawang Tea':       [{en:'Bo Ya Jue Xian',zh:'伯牙绝弦'},{en:'Hua Tian Oolong',zh:'花田乌龙'},{en:'Qing Qing Nuo Shan',zh:'青青糯山'},{en:'Wan Li Mu Lan',zh:'万里木兰'},{en:'Gui Fu Lan Xiang',zh:'桂馥兰香'},{en:'Bai Wu Hong Chen',zh:'白雾红尘'},{en:'Shan Ye Zhi Zi',zh:'山野栀子'},{en:'Qian Feng Cui',zh:'千峰翠'},{en:'Lemon Tea',zh:'柠檬茶'}],
+  'Hey Tea':          [{en:'Duo Rou Pu Tao',zh:'多肉葡萄'},{en:'Zhi Zhi Mei Mei',zh:'芝芝莓莓'},{en:'Brown Sugar Bobo Milk',zh:'黑糖波波牛乳'},{en:'Man Bei Hong You',zh:'满杯红柚'},{en:'Zhi Zhi Mang Mang',zh:'芝芝芒芒'},{en:'Pure Green Tea',zh:'纯绿妍'},{en:'Man Bei Cheng Cheng',zh:'满杯橙橙'},{en:'Mango Pomelo Sago',zh:'芒果杨枝甘露'},{en:'Cool Black Berry',zh:'酷黑莓桑'}],
+  'Naixue Tea':       [{en:'Ba Qi Strawberry',zh:'霸气草莓'},{en:'Ba Qi Orange',zh:'霸气橙子'},{en:'Ba Qi Cheese Mango',zh:'霸气芝士芒果'},{en:'Golden Mountain Pearl Milk Tea',zh:'金山珍珠奶茶'},{en:'Jasmine Snow',zh:'茉莉初雪'},{en:'Ba Qi Grape',zh:'霸气葡萄'},{en:'Dong Ding Oolong',zh:'冻顶乌龙'}],
+  'Chabaidao':        [{en:'Yang Zhi Gan Lu',zh:'杨枝甘露'},{en:'Jasmine Milk Green',zh:'茉莉奶绿'},{en:'Soy Milk Jade Kirin',zh:'豆乳玉麒麟'},{en:'Watermelon Bubu',zh:'西瓜啵啵'},{en:'Tie Guan Yin Milk Jelly',zh:'铁观音奶冻'},{en:'Grape Jelly',zh:'葡萄冻冻'},{en:'Taro Ball Milk Tea',zh:'芋圆奶茶'},{en:'Mango Pomelo',zh:'芒果柚子'}],
+};
+
+var SHOPS = Object.keys(MENU);
+
+// ====== Drink name helper ======
+function drinkName(d) {
+  if (!d) return '';
+  if (typeof d === 'string') return d;
+  return (LANG === 'zh') ? (d.zh || d.en) : (d.en || d.zh);
+}
+
+// ====== Shop name translations ======
+var SHOP_NAMES = {
+  'Ruixing Coffee':   {en:'Ruixing Coffee', zh:'瑞幸咖啡'},
+  'Starbucks':        {en:'Starbucks', zh:'星巴克'},
+  'Manner Coffee':    {en:'Manner Coffee', zh:'Manner Coffee'},
+  'M Stand':          {en:'M Stand', zh:'M Stand'},
+  'Kudi Coffee':      {en:'Kudi Coffee', zh:'库迪咖啡'},
+  'Tims':             {en:'Tims', zh:'Tims天好咖啡'},
+  'Peets Coffee':     {en:'Peets Coffee', zh:'Peets Coffee皮爷'},
+  'Bawang Tea':       {en:'Bawang Tea', zh:'霸王茶姬'},
+  'Hey Tea':          {en:'Hey Tea', zh:'喜茶'},
+  'Naixue Tea':       {en:'Naixue Tea', zh:'奈雪的茶'},
+  'Chabaidao':        {en:'Chabaidao', zh:'茶百道'},
+};
+
+function shopName(key) {
+  if (!key) return '';
+  var entry = SHOP_NAMES[key];
+  if (!entry) return key;
+  return (LANG === 'zh') ? (entry.zh || entry.en) : (entry.en || entry.zh);
+}
+
+
+// ====== Persistence ======
+function loadData(){
+  try{
+    var r = JSON.parse(localStorage.wd || '{}');
+    // Migrate old string-format drinks to bilingual objects
+    if (r.menu && Object.keys(r.menu).length > 0) {
+      MENU = r.menu; SHOPS = Object.keys(MENU);
+      // Migrate: convert string drinks to {en,zh} objects
+      // Build reverse lookup from default MENU for known translations
+      var defLookup = {};
+      var defMenu = {
+        'Ruixing Coffee':[{en:'Coconut Latte',zh:'生椰拿铁'},{en:'Thick Milk Latte',zh:'厚乳拿铁'},{en:'Americano',zh:'美式'},{en:'Flat White',zh:'澳瑞白'},{en:'Velvet Latte',zh:'丝绒拿铁'},{en:'Orange C Americano',zh:'橙C美式'},{en:'Jasmine Latte',zh:'茉莉花香拿铁'},{en:'Coconut Cloud Latte',zh:'椰云拿铁'},{en:'Cheese Latte',zh:'芝士拿铁'},{en:'Cappuccino',zh:'卡布奇诺'}],
+        'Starbucks':[{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Caramel Macchiato',zh:'焦糖玛奇朵'},{en:'Frappuccino',zh:'星冰乐'},{en:'Cold Brew',zh:'冷萃'},{en:'Flat White',zh:'馥芮白'},{en:'Mocha',zh:'摩卡'},{en:'Matcha Latte',zh:'抹茶拿铁'},{en:'Iced Shaken Lemon Tea',zh:'冰摇柠檬茶'},{en:'Peach Oolong',zh:'桃桃乌龙'}],
+        'Manner Coffee':[{en:'Latte',zh:'拿铁'},{en:'Flat White',zh:'澳白'},{en:'Americano',zh:'美式'},{en:'Dirty',zh:'Dirty'},{en:'Pour Over',zh:'手冲'},{en:'Cold Brew',zh:'冷萃'},{en:'Oat Milk Latte',zh:'燕麦拿铁'},{en:'Osmanthus Latte',zh:'桂花拿铁'},{en:'Orange Peel Latte',zh:'橘皮拿铁'},{en:'Iced Latte',zh:'冰拿铁'}],
+        'M Stand':[{en:'Crispy Choc Latte',zh:'脆巧拿铁'},{en:'Cheese Latte',zh:'芝士拿铁'},{en:'Coconut Dirty',zh:'生椰Dirty'},{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Flat White',zh:'澳白'},{en:'Cement Cheesecake Latte',zh:'水泥芝士蛋糕拿铁'},{en:'Cold Brew',zh:'冷萃'},{en:'Iced Blog Latte',zh:'冰博客拿铁'}],
+        'Kudi Coffee':[{en:'Coconut Latte',zh:'生椰拿铁'},{en:'Americano',zh:'美式'},{en:'Cheese Latte',zh:'芝士拿铁'},{en:'Latte',zh:'拿铁'},{en:'Coconut Dirty',zh:'生椰Dirty'},{en:'Pampas Blue Jasmine Latte',zh:'潘帕斯蓝茉莉拿铁'},{en:'Flat White',zh:'澳白'}],
+        'Tims':[{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Double Double',zh:'Double Double'},{en:'Cold Brew',zh:'冷萃'},{en:'Cappuccino',zh:'卡布奇诺'},{en:'Matcha Latte',zh:'抹茶拿铁'},{en:'Flat White',zh:'澳白'}],
+        'Peets Coffee':[{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Flat White',zh:'澳白'},{en:'Cold Brew',zh:'冷萃'},{en:'Matcha Latte',zh:'抹茶拿铁'},{en:'Cappuccino',zh:'卡布奇诺'},{en:'Pour Over',zh:'手冲'},{en:'Iced Americano',zh:'冰美式'}],
+        'Bawang Tea':[{en:'Bo Ya Jue Xian',zh:'伯牙绝弦'},{en:'Hua Tian Oolong',zh:'花田乌龙'},{en:'Qing Qing Nuo Shan',zh:'青青糯山'},{en:'Wan Li Mu Lan',zh:'万里木兰'},{en:'Gui Fu Lan Xiang',zh:'桂馥兰香'},{en:'Bai Wu Hong Chen',zh:'白雾红尘'},{en:'Shan Ye Zhi Zi',zh:'山野栀子'},{en:'Qian Feng Cui',zh:'千峰翠'},{en:'Lemon Tea',zh:'柠檬茶'}],
+        'Hey Tea':[{en:'Duo Rou Pu Tao',zh:'多肉葡萄'},{en:'Zhi Zhi Mei Mei',zh:'芝芝莓莓'},{en:'Brown Sugar Bobo Milk',zh:'黑糖波波牛乳'},{en:'Man Bei Hong You',zh:'满杯红柚'},{en:'Zhi Zhi Mang Mang',zh:'芝芝芒芒'},{en:'Pure Green Tea',zh:'纯绿妍'},{en:'Man Bei Cheng Cheng',zh:'满杯橙橙'},{en:'Mango Pomelo Sago',zh:'芒果杨枝甘露'},{en:'Cool Black Berry',zh:'酷黑莓桑'}],
+        'Naixue Tea':[{en:'Ba Qi Strawberry',zh:'霸气草莓'},{en:'Ba Qi Orange',zh:'霸气橙子'},{en:'Ba Qi Cheese Mango',zh:'霸气芝士芒果'},{en:'Golden Mountain Pearl Milk Tea',zh:'金山珍珠奶茶'},{en:'Jasmine Snow',zh:'茉莉初雪'},{en:'Ba Qi Grape',zh:'霸气葡萄'},{en:'Dong Ding Oolong',zh:'冻顶乌龙'}],
+        'Chabaidao':[{en:'Yang Zhi Gan Lu',zh:'杨枝甘露'},{en:'Jasmine Milk Green',zh:'茉莉奶绿'},{en:'Soy Milk Jade Kirin',zh:'豆乳玉麒麟'},{en:'Watermelon Bubu',zh:'西瓜啵啵'},{en:'Tie Guan Yin Milk Jelly',zh:'铁观音奶冻'},{en:'Grape Jelly',zh:'葡萄冻冻'},{en:'Taro Ball Milk Tea',zh:'芋圆奶茶'},{en:'Mango Pomelo',zh:'芒果柚子'}]
+      };
+      for (var sk in defMenu) {
+        if (defMenu.hasOwnProperty(sk)) {
+          var defs = defMenu[sk];
+          for (var di=0;di<defs.length;di++) { defLookup[defs[di].en] = defs[di].zh; }
+        }
+      }
+      SHOPS.forEach(function(s){
+        var drinks = MENU[s] || [];
+        for (var i=0;i<drinks.length;i++){
+          if (typeof drinks[i] === 'string'){
+            var zhName = defLookup[drinks[i]] || drinks[i];
+            drinks[i] = {en: drinks[i], zh: zhName};
+          }
+        }
+      });
+    }
+    // Load SHOP_NAMES if saved, otherwise keep defaults
+    if (r.shopNames) {
+      for (var k in r.shopNames) {
+        if (r.shopNames.hasOwnProperty(k)) SHOP_NAMES[k] = r.shopNames[k];
+      }
+    }
+    // Migrate history drink entries from strings to objects
+    var hist = r.history || [];
+    for (var j=0;j<hist.length;j++){
+      if (typeof hist[j].drink === 'string'){
+        var hzh = defLookup[hist[j].drink] || hist[j].drink;
+        hist[j].drink = {en: hist[j].drink, zh: hzh};
+      }
+    }
+    return { count: r.count || 0, history: hist };
+  } catch(e) {}
+  return { count: 0, history: [] };
+}
+var data = loadData();
+
+function saveData(){
+  localStorage.wd = JSON.stringify({ menu: MENU, shopNames: SHOP_NAMES, count: data.count, history: data.history });
+}
+
+// ====== DOM Refs ======
+var E = {};
+[
+  'shopGroup','drinkGroup','shopFrame','drinkFrame','shopList','drinkList',
+  'shopRes','drinkRes','cardArea','btnRoll','btnAgain','d1','d2','btnWrap',
+  'setOv','histOv','histGrid','histEmpty','setContent','langToggle',
+  'btnSet','btnHist','previewOv','previewCard','btnAddShop2','btnReset','btnClearHist','btnResetCount','btnSave','btnDiscard',
+  'titleMain','titleSub','shopLabel','drinkLabel','setTitle','histTitle'
+].forEach(function(id){ E[id] = document.getElementById(id); });
+
+// ====== Surprise: all drinks across all menus ======
+function allDrinks(){
+  var all = [];
+  SHOPS.forEach(function(s){
+    var drinks = MENU[s] || [];
+    for (var i=0;i<drinks.length;i++){
+      var name = drinkName(drinks[i]);
+      if (all.indexOf(name) < 0) all.push(name);
+    }
+  });
+  return all;
+}
+
+// ====== Build slot strips ======
+function buildShopList(){
+  E.shopList.innerHTML = '';
+  var arr = []; for (var i=0;i<7;i++) arr.push.apply(arr, SHOPS);
+  arr.forEach(function(n){
+    var d = document.createElement('div'); d.className = 'slot-row'; d.textContent = shopName(n);
+    E.shopList.appendChild(d);
+  });
+}
+
+function buildDrinkList(shopName){
+  E.drinkList.innerHTML = '';
+  var drinks = MENU[shopName] || [];
+  // Prepend "Surprise Me" option
+  var displayNames = [t('surprise')];
+  for (var i=0;i<drinks.length;i++){ displayNames.push(drinkName(drinks[i])); }
+  var arr = []; for (var i=0;i<7;i++) arr.push.apply(arr, displayNames);
+  arr.forEach(function(n){
+    var d = document.createElement('div'); d.className = 'slot-row'; d.textContent = n;
+    E.drinkList.appendChild(d);
+  });
+}
+
+// ====== Step dots ======
+function dots(s){
+  E.d1.className = (s>=1?'done ':'') + (s===0?'on':'');
+  E.d2.className = (s>=2?'done ':'') + (s===1?'on':'');
+}
+
+// ====== Spin animation ======
+function spin(listEl, items, onDone){
+  var H = 52; var N = items.length;
+  if (N === 0) { onDone(-1); return; }
+  var COPIES = 7, total = N * COPIES;
+  var start = N + Math.floor(Math.random() * N);
+  listEl.style.transition = 'none';
+  listEl.style.transform = 'translateY(-' + (start * H) + 'px)';
+  listEl.offsetHeight;
+  var cycles = 3 + Math.floor(Math.random() * 3);
+  var end = start + cycles * N + Math.floor(Math.random() * N);
+  if (end >= total) end = total - 1;
+  var dur = 1500 + cycles * 250;
+  listEl.style.transition = 'transform ' + dur + 'ms cubic-bezier(0.12,0.8,0.2,1)';
+  listEl.style.transform = 'translateY(-' + (end * H) + 'px)';
+  setTimeout(function(){ onDone(end % N); }, dur + 150);
+}
+
+// ====== Roll flow ======
+var shopPick = null, drinkPick = null;
+var rollId = 0;
+
+function startRoll(){
+  rollId++;
+  var myId = rollId;
+  E.btnRoll.classList.add('hide');
+  E.cardArea.classList.add('hide'); E.cardArea.innerHTML = '';
+  // result labels hidden
+  E.drinkGroup.classList.add('hide');
+  E.shopGroup.classList.remove('hide'); E.shopGroup.classList.add('in');
+  E.btnAgain.classList.add('hide');
+  shopPick = drinkPick = null;
+  dots(1);
+
+  buildShopList();
+  spin(E.shopList, SHOPS, function(idx){
+    if (myId !== rollId) return;
+    shopPick = SHOPS[idx];
+    // shop result hidden
+
+    buildDrinkList(shopPick);
+    var drinkNames = [t('surprise')];
+    var menuDrinks = MENU[shopPick] || [];
+    for (var i=0;i<menuDrinks.length;i++){ drinkNames.push(drinkName(menuDrinks[i])); }
+
+    setTimeout(function(){
+      if (myId !== rollId) return;
+      E.drinkGroup.classList.remove('hide'); E.drinkGroup.classList.add('in');
+      dots(2);
+
+      spin(E.drinkList, drinkNames, function(di){
+        if (myId !== rollId) return;
+        if (di < 0) return;
+        if (di === 0) {
+          // "Surprise Me" - pick random from ALL drinks
+          var allD = [];
+          SHOPS.forEach(function(s){
+            var ds = MENU[s] || [];
+            for (var j=0;j<ds.length;j++) allD.push(ds[j]);
+          });
+          drinkPick = allD[Math.floor(Math.random() * allD.length)];
+        } else {
+          drinkPick = MENU[shopPick][di - 1];
+        }
+        // drink result hidden
+        setTimeout(function(){ if (myId === rollId) showCard(); }, 400);
+      });
+    }, 500);
+  });
+}
+
+// ====== Card ======
+// Temp card data before save/ discard
+var pendingCard = null;
+
+function showCard(){
+  data.count++;
+  var no = String(data.count).padStart(4, '0');
+  var d = new Date();
+  var ms = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var ds = ms[d.getMonth()] + ' ' + d.getDate() + '<sup>' + nth(d.getDate()) + '</sup> ' + d.getFullYear();
+
+  // Store pending card data
+  pendingCard = { id:no, shop:shopPick, drink:drinkPick, date:ds, fd:d.toISOString().slice(0,10), ts:Date.now() };
+
+  renderCard(no, ds);
+  // Show Save/ Discard buttons
+  E.btnSave.classList.remove('hide');
+  E.btnDiscard.classList.remove('hide');
+  E.btnAgain.classList.add('hide');
+}
+
+function saveCard(){
+  if (!pendingCard) return;
+  data.history.unshift(pendingCard);
+  saveData();
+  if (data.history.length > 50) data.history.length = 50;
+  pendingCard = null;
+  E.btnSave.classList.add('hide');
+  E.btnDiscard.classList.add('hide');
+  E.btnAgain.classList.remove('hide');
+  E.btnAgain.classList.add('in');
+}
+
+function discardCard(){
+  if (!pendingCard) return;
+  data.count--;
+  pendingCard = null;
+  saveData();
+  E.btnSave.classList.add('hide');
+  E.btnDiscard.classList.add('hide');
+  E.cardArea.classList.add('hide');
+  E.cardArea.innerHTML = '';
+  E.btnRoll.classList.remove('hide');
+  shopPick = drinkPick = null;
+  dots(0);
+}
+
+function renderCard(no, ds){
+  if (!no) {
+    // Re-render existing card from last roll
+    no = data.history.length > 0 ? data.history[0].id : '0001';
+    ds = data.history.length > 0 ? data.history[0].date : '';
+  }
+  var h = '';
+  h += '<div class="card-wrap pop">';
+  h += '<div class="card-watermark">' + esc(shopName(shopPick)) + '<br>' + esc(drinkName(drinkPick)) + '</div>';
+  h += '<div class="card-hdr">' + esc(t('cardHeader')) + '<div class="card-cut">&#9985;</div></div>';
+  h += '<div class="card-bdy"><span class="spacer"></span>' + ds + '<br>' + esc(shopName(shopPick)) + '<br>' + esc(drinkName(drinkPick)) + '</div>';
+  h += '<div class="card-ftr"><div class="card-no">No. <b>' + no + '</b></div><div class="card-bar"></div></div>';
+  h += '<div class="card-bg card-holo"></div>';
+  h += '</div>';
+
+  E.cardArea.innerHTML = h;
+  E.cardArea.classList.remove('hide'); E.cardArea.classList.add('in');
+  E.btnAgain.classList.remove('hide'); E.btnAgain.classList.add('in');
+  dots(0);
+  // Attach parallax
+  setTimeout(attachParallax, 650);
+}
+
+function resetApp(){
+  E.cardArea.classList.add('hide'); E.cardArea.innerHTML = '';
+  E.shopGroup.classList.add('hide'); E.drinkGroup.classList.add('hide');
+  E.shopRes.classList.add('hide'); E.drinkRes.classList.add('hide');
+  E.btnAgain.classList.add('hide');
+  E.btnRoll.classList.remove('hide');
+  shopPick = drinkPick = null;
+  dots(0);
+}
+
+// ====== Settings ======
+function openSettings(){ renderSettings(); E.setOv.classList.add('on'); }
+function closeSettings(){ E.setOv.classList.remove('on'); }
+
+function renderSettings(){
+  var h = '';
+  SHOPS.forEach(function(shop, si){
+    var drinks = MENU[shop] || [];
+    h += '<div class="shop-section">';
+    h += '<h5>' + esc(shopName(shop)) + ' <button class="del-shop" data-si="' + si + '">' + esc(t('delShop')) + '</button></h5>';
+    h += '<div class="tags">';
+    drinks.forEach(function(d, di){
+      h += '<span class="tag">' + esc(drinkName(d)) + ' <button data-si="' + si + '" data-di="' + di + '">&times;</button></span>';
+    });
+    h += '</div>';
+    h += '<div class="add-row"><input class="drink-in" data-si="' + si + '" placeholder="English / 中文"><button class="btn sm add-drink-btn" data-si="' + si + '">+</button></div>';
+    h += '</div>';
+  });
+  E.setContent.innerHTML = h;
+
+  E.setContent.querySelectorAll('.del-shop').forEach(function(b){
+    b.onclick = function(e){ e.stopPropagation(); removeShop(+b.dataset.si); };
+  });
+  E.setContent.querySelectorAll('.tag button').forEach(function(b){
+    b.onclick = function(e){ e.stopPropagation(); removeDrink(+b.dataset.si, +b.dataset.di); };
+  });
+  E.setContent.querySelectorAll('.add-drink-btn').forEach(function(b){
+    b.onclick = function(e){ e.stopPropagation(); addDrinkToShop(+b.dataset.si); };
+  });
+  E.setContent.querySelectorAll('.drink-in').forEach(function(inp){
+    inp.onkeydown = function(e){ if (e.key === 'Enter') addDrinkToShop(+inp.dataset.si); };
+  });
+}
+
+function removeShop(si){
+  if (SHOPS.length <= 1) return;
+  var name = SHOPS[si]; SHOPS.splice(si, 1); delete MENU[name]; delete SHOP_NAMES[name];
+  buildShopList(); saveData(); renderSettings();
+}
+
+function removeDrink(si, di){
+  var shop = SHOPS[si];
+  if (MENU[shop].length <= 1) return;
+  MENU[shop].splice(di, 1);
+  buildDrinkList(shop); saveData(); renderSettings();
+}
+
+function addDrinkToShop(si){
+  var shop = SHOPS[si];
+  var inp = E.setContent.querySelector('.drink-in[data-si="' + si + '"]');
+  if (!inp) return; var v = inp.value.trim(); inp.value = '';
+  if (!v) return;
+  var parts = v.split('/');
+  var en = parts[0].trim();
+  var zh = parts.length > 1 ? parts[1].trim() : en;
+  if (!en && !zh) return;
+  if (!en) en = zh;
+  if (!zh) zh = en;
+  // Check duplicate
+  var drinks = MENU[shop] || [];
+  var checkName = (LANG==='zh'?zh:en);
+  for (var i=0;i<drinks.length;i++){
+    if (drinkName(drinks[i]) === checkName) return;
+  }
+  MENU[shop].push({en:en, zh:zh});
+  buildDrinkList(shop); saveData(); renderSettings();
+}
+
+function addNewShop(){
+  var name = prompt(LANG==='zh' ? '\u65b0\u5e97\u94fa\u540d\u79f0:' : 'New shop name:');
+  if (!name || !name.trim()) return; name = name.trim();
+  if (SHOPS.indexOf(name) >= 0) return;
+  SHOPS.push(name); MENU[name] = [{en:'Americano',zh:'美式'},{en:'Latte',zh:'拿铁'}]; SHOP_NAMES[name] = {en:name, zh:name};
+  buildShopList(); saveData(); renderSettings();
+}
+
+var DEFAULT_MENU;
+function resetDefaults(){
+  DEFAULT_MENU = DEFAULT_MENU || JSON.parse(JSON.stringify({
+  'Ruixing Coffee':   [{en:'Coconut Latte',zh:'生椰拿铁'},{en:'Thick Milk Latte',zh:'厚乳拿铁'},{en:'Americano',zh:'美式'},{en:'Flat White',zh:'澳瑞白'},{en:'Velvet Latte',zh:'丝绒拿铁'},{en:'Orange C Americano',zh:'橙C美式'},{en:'Jasmine Latte',zh:'茉莉花香拿铁'},{en:'Coconut Cloud Latte',zh:'椰云拿铁'},{en:'Cheese Latte',zh:'芝士拿铁'},{en:'Cappuccino',zh:'卡布奇诺'}],
+  'Starbucks':   [{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Caramel Macchiato',zh:'焦糖玛奇朵'},{en:'Frappuccino',zh:'星冰乐'},{en:'Cold Brew',zh:'冷萃'},{en:'Flat White',zh:'馥芮白'},{en:'Mocha',zh:'摩卡'},{en:'Matcha Latte',zh:'抹茶拿铁'},{en:'Iced Shaken Lemon Tea',zh:'冰摇柠檬茶'},{en:'Peach Oolong',zh:'桃桃乌龙'}],
+  'Manner Coffee':   [{en:'Latte',zh:'拿铁'},{en:'Flat White',zh:'澳白'},{en:'Americano',zh:'美式'},{en:'Dirty',zh:'Dirty'},{en:'Pour Over',zh:'手冲'},{en:'Cold Brew',zh:'冷萃'},{en:'Oat Milk Latte',zh:'燕麦拿铁'},{en:'Osmanthus Latte',zh:'桂花拿铁'},{en:'Orange Peel Latte',zh:'橘皮拿铁'},{en:'Iced Latte',zh:'冰拿铁'}],
+  'M Stand':   [{en:'Crispy Choc Latte',zh:'脆巧拿铁'},{en:'Cheese Latte',zh:'芝士拿铁'},{en:'Coconut Dirty',zh:'生椰Dirty'},{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Flat White',zh:'澳白'},{en:'Cement Cheesecake Latte',zh:'水泥芝士蛋糕拿铁'},{en:'Cold Brew',zh:'冷萃'},{en:'Iced Blog Latte',zh:'冰博客拿铁'}],
+  'Kudi Coffee':   [{en:'Coconut Latte',zh:'生椰拿铁'},{en:'Americano',zh:'美式'},{en:'Cheese Latte',zh:'芝士拿铁'},{en:'Latte',zh:'拿铁'},{en:'Coconut Dirty',zh:'生椰Dirty'},{en:'Pampas Blue Jasmine Latte',zh:'潘帕斯蓝茉莉拿铁'},{en:'Flat White',zh:'澳白'}],
+  'Tims':   [{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Double Double',zh:'Double Double'},{en:'Cold Brew',zh:'冷萃'},{en:'Cappuccino',zh:'卡布奇诺'},{en:'Matcha Latte',zh:'抹茶拿铁'},{en:'Flat White',zh:'澳白'}],
+  'Peets Coffee':   [{en:'Latte',zh:'拿铁'},{en:'Americano',zh:'美式'},{en:'Flat White',zh:'澳白'},{en:'Cold Brew',zh:'冷萃'},{en:'Matcha Latte',zh:'抹茶拿铁'},{en:'Cappuccino',zh:'卡布奇诺'},{en:'Pour Over',zh:'手冲'},{en:'Iced Americano',zh:'冰美式'}],
+  'Bawang Tea':   [{en:'Bo Ya Jue Xian',zh:'伯牙绝弦'},{en:'Hua Tian Oolong',zh:'花田乌龙'},{en:'Qing Qing Nuo Shan',zh:'青青糯山'},{en:'Wan Li Mu Lan',zh:'万里木兰'},{en:'Gui Fu Lan Xiang',zh:'桂馥兰香'},{en:'Bai Wu Hong Chen',zh:'白雾红尘'},{en:'Shan Ye Zhi Zi',zh:'山野栀子'},{en:'Qian Feng Cui',zh:'千峰翠'},{en:'Lemon Tea',zh:'柠檬茶'}],
+  'Hey Tea':   [{en:'Duo Rou Pu Tao',zh:'多肉葡萄'},{en:'Zhi Zhi Mei Mei',zh:'芝芝莓莓'},{en:'Brown Sugar Bobo Milk',zh:'黑糖波波牛乳'},{en:'Man Bei Hong You',zh:'满杯红柚'},{en:'Zhi Zhi Mang Mang',zh:'芝芝芒芒'},{en:'Pure Green Tea',zh:'纯绿妍'},{en:'Man Bei Cheng Cheng',zh:'满杯橙橙'},{en:'Mango Pomelo Sago',zh:'芒果杨枝甘露'},{en:'Cool Black Berry',zh:'酷黑莓桑'}],
+  'Naixue Tea':   [{en:'Ba Qi Strawberry',zh:'霸气草莓'},{en:'Ba Qi Orange',zh:'霸气橙子'},{en:'Ba Qi Cheese Mango',zh:'霸气芝士芒果'},{en:'Golden Mountain Pearl Milk Tea',zh:'金山珍珠奶茶'},{en:'Jasmine Snow',zh:'茉莉初雪'},{en:'Ba Qi Grape',zh:'霸气葡萄'},{en:'Dong Ding Oolong',zh:'冻顶乌龙'}],
+  'Chabaidao':   [{en:'Yang Zhi Gan Lu',zh:'杨枝甘露'},{en:'Jasmine Milk Green',zh:'茉莉奶绿'},{en:'Soy Milk Jade Kirin',zh:'豆乳玉麒麟'},{en:'Watermelon Bubu',zh:'西瓜啵啵'},{en:'Tie Guan Yin Milk Jelly',zh:'铁观音奶冻'},{en:'Grape Jelly',zh:'葡萄冻冻'},{en:'Taro Ball Milk Tea',zh:'芋圆奶茶'},{en:'Mango Pomelo',zh:'芒果柚子'}],
+}));
+  MENU = JSON.parse(JSON.stringify(DEFAULT_MENU));
+  SHOPS = Object.keys(MENU);
+  SHOP_NAMES = JSON.parse(JSON.stringify({'Ruixing Coffee':{en:'Ruixing Coffee',zh:'瑞幸咖啡'},'Starbucks':{en:'Starbucks',zh:'星巴克'},'Manner Coffee':{en:'Manner Coffee',zh:'Manner Coffee'},'M Stand':{en:'M Stand',zh:'M Stand'},'Kudi Coffee':{en:'Kudi Coffee',zh:'库迪咖啡'},'Tims':{en:'Tims',zh:'Tims天好咖啡'},'Peets Coffee':{en:'Peets Coffee',zh:'Peets Coffee皮爷'},'Bawang Tea':{en:'Bawang Tea',zh:'霸王茶姬'},'Hey Tea':{en:'Hey Tea',zh:'喜茶'},'Naixue Tea':{en:'Naixue Tea',zh:'奈雪的茶'},'Chabaidao':{en:'Chabaidao',zh:'茶百道'}}));
+  buildShopList(); saveData(); renderSettings();
+}
+
+function clearHistory(){ data.history = []; data.count = 0; saveData(); renderSettings(); }
+function openPreview(index){
+  var r = data.history[index];
+  if (!r) return;
+  var h = '';
+  h += '<div class="card-wrap">';
+  h += '<div class="card-watermark">' + esc(shopName(r.shop)) + '<br>' + esc(drinkName(r.drink)) + '</div>';
+  h += '<div class="card-hdr">' + esc(t('cardHeader')) + '<div class="card-cut">&#9985;</div></div>';
+  h += '<div class="card-bdy"><span class="spacer"></span>' + r.date + '<br>' + esc(shopName(r.shop)) + '<br>' + esc(drinkName(r.drink)) + '</div>';
+  h += '<div class="card-ftr"><div class="card-no">No. <b>' + r.id + '</b></div><div class="card-bar"></div></div>';
+  h += '<div class="card-bg card-holo"></div>';
+  h += '</div>';
+  E.previewCard.innerHTML = h;
+  E.previewOv.classList.add('on');
+
+  // Attach parallax to preview card
+  var card = E.previewCard.querySelector('.card-wrap');
+  if (card) {
+    card.style.animationPlayState = 'paused';
+    function ptilt(cx, cy){
+      var rect = card.getBoundingClientRect();
+      var x = (cx - rect.left) / rect.width - 0.5;
+      var y = (cy - rect.top) / rect.height - 0.5;
+      card.style.transition = 'none';
+      card.style.transform = 'perspective(800px) rotateY(' + (x * 18) + 'deg) rotateX(' + (-y * 14) + 'deg)';
+    }
+    function preset(){
+      card.style.transition = 'transform 0.3s ease-out';
+      card.style.transform = '';
+    }
+    card.addEventListener('mousemove', function(e){ ptilt(e.clientX, e.clientY); });
+    card.addEventListener('mouseleave', preset);
+    card.addEventListener('touchstart', function(e){ e.preventDefault(); var t = e.touches[0]; ptilt(t.clientX, t.clientY); }, {passive: false});
+    card.addEventListener('touchmove', function(e){ e.preventDefault(); var t = e.touches[0]; ptilt(t.clientX, t.clientY); }, {passive: false});
+    card.addEventListener('touchend', preset);
+    card.addEventListener('touchcancel', preset);
+  }
+}
+
+function closePreview(){
+  E.previewOv.classList.remove('on');
+  E.previewCard.innerHTML = '';
+}
+
+
+function resetCounter(){
+  data.count = 0;
+  saveData();
+  if (LANG==='zh') alert('计数器已归零'); else alert('Counter reset to 0');
+}
+
+// ====== History ======
+function openHistory(){ renderHistory(); E.histOv.classList.add('on'); }
+function closeHistory(){ E.histOv.classList.remove('on'); }
+
+function deleteHistoryItem(index){
+  data.history.splice(index, 1);
+  saveData();
+  renderHistory();
+}
+
+function renderHistory(){
+  if (!data.history.length){
+    E.histGrid.innerHTML = ''; E.histEmpty.style.display = 'block'; return;
+  }
+  E.histEmpty.style.display = 'none';
+  E.histGrid.innerHTML = data.history.map(function(r, i){
+    return '<div class="hist-card-wrap">' +
+      '<button class="hist-del" data-hi="' + i + '" title="Delete">&times;</button>' +
+      '<div class="card-wrap sml hist-card">' +
+      '<div class="card-watermark">' + esc(shopName(r.shop)) + '<br>' + esc(drinkName(r.drink)) + '</div>' +
+      '<div class="card-hdr">' + esc(t('cardHeader')) + '<div class="card-cut">&#9985;</div></div>' +
+      '<div class="card-bdy"><span class="spacer"></span>' + r.date + '<br>' + esc(shopName(r.shop)) + '<br>' + esc(drinkName(r.drink)) + '</div>' +
+      '<div class="card-ftr"><div class="card-no">No. <b>' + r.id + '</b></div><div class="card-bar"></div></div>' +
+      '<div class="card-bg card-holo"></div>' +
+      '</div></div>';
+  }).join('');
+
+  E.histGrid.querySelectorAll('.hist-card').forEach(function(card, i){
+    card.onclick = function(){ openPreview(i); };
+  });
+  E.histGrid.querySelectorAll('.hist-del').forEach(function(b){
+    b.onclick = function(e){ e.stopPropagation(); deleteHistoryItem(+b.dataset.hi); };
+  });
+}
+
+// ====== Card parallax ======
+function attachParallax(){
+  var card = document.querySelector('.card-wrap');
+  if (!card) return;
+  card.classList.remove('pop');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = '';
+
+  function tilt(cx, cy){
+    var rect = card.getBoundingClientRect();
+    var x = (cx - rect.left) / rect.width - 0.5;
+    var y = (cy - rect.top) / rect.height - 0.5;
+    card.style.transition = 'none';
+    card.style.transform = 'perspective(800px) rotateY(' + (x * 18) + 'deg) rotateX(' + (-y * 14) + 'deg)';
+  }
+  function reset(){
+    card.style.transition = 'transform 0.3s ease-out';
+    card.style.transform = '';
+    card.style.animationPlayState = 'running';
+  }
+
+  // Mouse (desktop)
+  card.addEventListener('mouseenter', function(){ card.style.animationPlayState = 'paused'; });
+  card.addEventListener('mousemove', function(e){ tilt(e.clientX, e.clientY); });
+  card.addEventListener('mouseleave', reset);
+
+  // Touch drag (mobile)
+  card.addEventListener('touchstart', function(e){
+    e.preventDefault();
+    card.style.animationPlayState = 'paused';
+    var t = e.touches[0];
+    tilt(t.clientX, t.clientY);
+  }, {passive: false});
+  card.addEventListener('touchmove', function(e){
+    e.preventDefault();
+    var t = e.touches[0];
+    tilt(t.clientX, t.clientY);
+  }, {passive: false});
+  card.addEventListener('touchend', reset);
+  card.addEventListener('touchcancel', reset);
+}
+
+
+
+// ====== Language toggle ======
+function toggleLang(){
+  LANG = LANG === 'zh' ? 'en' : 'zh';
+  try { localStorage.wd_lang = LANG; } catch(e) {}
+  applyLang();
+}
+
+// ====== Helpers ======
+function nth(d){ return (d>3&&d<21)?'th':['th','st','nd','rd','th','th','th','th','th','th'][d%10]; }
+function esc(s){ if (!s) return ''; var e = document.createElement('div'); e.textContent = s; return e.innerHTML; }
+
+// ====== Init ======
+(function init(){
+  applyLang();
+  buildShopList();
+  dots(0);
+
+  E.btnRoll.onclick = startRoll;
+  E.btnAgain.onclick = resetApp;
+  E.btnSet.onclick = openSettings;
+  E.btnHist.onclick = openHistory;
+  E.langToggle.onclick = toggleLang;
+
+  E.setOv.addEventListener('click', function(e){ if (e.target === E.setOv) closeSettings(); });
+  E.histOv.addEventListener('click', function(e){ if (e.target === E.histOv) closeHistory(); });
+  E.previewOv.addEventListener('click', function(e){ if (e.target === E.previewOv) closePreview(); });
+
+  E.btnAddShop2.onclick = addNewShop;
+  E.btnReset.onclick = resetDefaults;
+  E.btnClearHist.onclick = clearHistory;
+  E.btnResetCount.onclick = resetCounter;
+  E.btnSave.onclick = saveCard;
+  E.btnDiscard.onclick = discardCard;
+})();
+</script>
+
+</body>
+</html>
